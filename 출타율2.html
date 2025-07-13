@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중대 출타 관리 시스템</title>
+    <style>
+        :root {
+            --color-vacation: #ADD8E6;
+            --color-overnight: #90EE90;
+            --color-outing: #FFA07A;
+            --color-border: #e0e0e0;
+            --color-text-primary: #212121;
+            --color-text-secondary: #757575;
+            --color-bg-primary: #ffffff;
+            --color-bg-secondary: #f5f5f5;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background-color: var(--color-bg-secondary);
+            color: var(--color-text-primary);
+            margin: 0;
+            padding: 24px;
+            font-size: 16px;
+        }
+        .container {
+            max-width: 1600px;
+            margin: auto;
+            display: grid;
+            grid-template-areas:
+                "header header"
+                "personnel history"
+                "calendars calendars";
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        header {
+            grid-area: header;
+            background: var(--color-bg-primary);
+            padding: 20px 24px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .total-personnel-setting {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .total-personnel-setting label {
+            font-weight: 600;
+        }
+        .total-personnel-setting input {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            text-align: center;
+            font-size: 16px;
+        }
+        .card {
+            background-color: var(--color-bg-primary);
+            padding: 24px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        #personnel-section { grid-area: personnel; }
+        #history-section { grid-area: history; }
+        #calendars-section { grid-area: calendars; }
+        .card h2 {
+            margin-top: 0;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        #personnel-list, #leave-history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        #personnel-list li, #leave-history-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        #personnel-list li:last-child, #leave-history-list li:last-child {
+            border-bottom: none;
+        }
+        .personnel-name {
+            font-weight: 500;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+        }
+        .personnel-name:focus {
+            background-color: #e0e7ff;
+            outline: 2px solid #6366f1;
+        }
+        button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .btn-add {
+            background-color: #3b82f6;
+            color: white;
+        }
+        .btn-add:hover { background-color: #2563eb; }
+        .btn-delete {
+            background-color: #ef4444;
+            color: white;
+        }
+        .btn-delete:hover { background-color: #dc2626; }
+        #calendars-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+        }
+        .calendar {
+            background-color: var(--color-bg-primary);
+            border-radius: var(--border-radius);
+            padding: 16px;
+        }
+        .calendar-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+        .day-name, .day-cell {
+            text-align: center;
+            padding: 4px 0;
+            font-size: 14px;
+        }
+        .day-name {
+            font-weight: 600;
+            color: var(--color-text-secondary);
+        }
+        .day-cell {
+            position: relative;
+            height: 60px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding-top: 5px;
+            background-clip: padding-box;
+        }
+        .day-cell.has-date {
+            border-color: var(--color-border);
+        }
+        .day-number {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .leave-info {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-primary);
+        }
+        .day-cell.vacation { background-color: var(--color-vacation); }
+        .day-cell.overnight { background-color: var(--color-overnight); }
+        .day-cell.outing { background-color: var(--color-outing); }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0s 0.3s, opacity 0.3s;
+        }
+        .modal-overlay.visible {
+            visibility: visible;
+            opacity: 1;
+            transition: opacity 0.3s;
+        }
+        .modal-content {
+            background: white;
+            padding: 32px;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 24px;
+            font-size: 22px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .form-group select, .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .modal-actions {
+            margin-top: 24px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        .btn-primary { background-color: #4f46e5; color: white; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-secondary { background-color: #d1d5db; color: var(--color-text-primary); }
+        .btn-secondary:hover { background-color: #9ca3af; }
+
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-areas:
+                    "header"
+                    "personnel"
+                    "history"
+                    "calendars";
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>📅 중대 출타 관리 시스템</h1>
+            <div class="total-personnel-setting">
+                <label for="total-personnel">총 중대원 수:</label>
+                <input type="number" id="total-personnel" min="1" value="10">
+            </div>
+        </header>
+
+        <div id="personnel-section" class="card">
+            <h2>👥 중대원 관리</h2>
+            <ul id="personnel-list"></ul>
+        </div>
+
+        <div id="history-section" class="card">
+            <h2>📜 출타 내역</h2>
+            <ul id="leave-history-list"></ul>
+        </div>
+
+        <div id="calendars-section" class="card">
+            <h2>🗓️ 2025년 출타 달력</h2>
+            <div id="calendars-container"></div>
+        </div>
+    </div>
+
+    <div id="leave-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modal-title">출타 정보 입력</h3>
+            <form id="leave-form">
+                <input type="hidden" id="personnel-id">
+                <div class="form-group">
+                    <label for="leave-type">출타 종류</label>
+                    <select id="leave-type" required>
+                        <option value="vacation">휴가 (최대 15일)</option>
+                        <option value="overnight">외박 (1박 2일)</option>
+                        <option value="outing">외출 (1일)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="start-date">시작 날짜</label>
+                    <input type="date" id="start-date" required>
+                </div>
+                <div class="form-group">
+                    <label for="end-date">종료 날짜</label>
+                    <input type="date" id="end-date" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-button" class="btn-secondary">취소</button>
+                    <button type="submit" id="save-button" class="btn-primary">출타 추가</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM 요소 참조 ---
+            const personnelList = document.getElementById('personnel-list');
+            const leaveHistoryList = document.getElementById('leave-history-list');
+            const calendarsContainer = document.getElementById('calendars-container');
+            const totalPersonnelInput = document.getElementById('total-personnel');
+            const modal = document.getElementById('leave-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const leaveForm = document.getElementById('leave-form');
+            const personnelIdInput = document.getElementById('personnel-id');
+            const leaveTypeSelect = document.getElementById('leave-type');
+            const startDateInput = document.getElementById('start-date');
+            const endDateInput = document.getElementById('end-date');
+            const cancelButton = document.getElementById('cancel-button');
+
+            // --- 상태 관리 ---
+            let state = {
+                totalPersonnel: 10,
+                personnel: [],
+                leaves: []
+            };
+
+            // --- 데이터 로드 및 초기화 ---
+            function loadState() {
+                const savedState = localStorage.getItem('leaveManagementState');
+                if (savedState) {
+                    state = JSON.parse(savedState);
+                } else {
+                    // 기본 중대원 10명 생성
+                    for (let i = 1; i <= 10; i++) {
+                        state.personnel.push({ id: `p${Date.now()}${i}`, name: `중대원 ${i}` });
+                    }
+                }
+                totalPersonnelInput.value = state.totalPersonnel;
+            }
+
+            function saveState() {
+                localStorage.setItem('leaveManagementState', JSON.stringify(state));
+            }
+
+            // --- 렌더링 함수 ---
+            function render() {
+                renderPersonnelList();
+                renderLeaveHistory();
+                renderCalendars();
+            }
+
+            function renderPersonnelList() {
+                personnelList.innerHTML = '';
+                state.personnel.forEach(p => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="personnel-name" contenteditable="true" data-id="${p.id}">${p.name}</span>
+                        <button class="btn-add" data-id="${p.id}" data-name="${p.name}">출타 입력</button>
+                    `;
+                    personnelList.appendChild(li);
+                });
+            }
+
+            function renderLeaveHistory() {
+                leaveHistoryList.innerHTML = '';
+                 if (state.leaves.length === 0) {
+                    leaveHistoryList.innerHTML = '<li>출타 내역이 없습니다.</li>';
+                    return;
+                }
+                const sortedLeaves = [...state.leaves].sort((a,b) => new Date(a.startDate) - new Date(b.startDate));
+
+                sortedLeaves.forEach(leave => {
+                    const person = state.personnel.find(p => p.id === leave.personnelId);
+                    if (!person) return;
+
+                    const li = document.createElement('li');
+                    const leaveTypeMap = { vacation: '휴가', overnight: '외박', outing: '외출' };
+                    li.innerHTML = `
+                        <span>
+                            <strong>${person.name}</strong> - ${leaveTypeMap[leave.type]}
+                            <br>
+                            <small>${leave.startDate} ~ ${leave.endDate}</small>
+                        </span>
+                        <button class="btn-delete" data-id="${leave.id}">삭제</button>
+                    `;
+                    leaveHistoryList.appendChild(li);
+                });
+            }
+
+            function renderCalendars() {
+                calendarsContainer.innerHTML = '';
+                const leaveDataByDate = getLeaveDataByDate();
+
+                for (let month = 6; month < 12; month++) { // 7월(6)부터 12월(11)까지
+                    const calendarDiv = document.createElement('div');
+                    calendarDiv.className = 'calendar';
+                    
+                    const date = new Date(2025, month, 1);
+                    const monthName = date.toLocaleString('ko-KR', { month: 'long' });
+
+                    let gridHtml = `<div class="calendar-header">2025년 ${monthName}</div>`;
+                    gridHtml += '<div class="calendar-grid">';
+                    
+                    const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                    dayNames.forEach(name => gridHtml += `<div class="day-name">${name}</div>`);
+                    
+                    const firstDay = date.getDay();
+                    const daysInMonth = new Date(2025, month + 1, 0).getDate();
+
+                    for (let i = 0; i < firstDay; i++) {
+                        gridHtml += '<div class="day-cell"></div>';
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day++) {
+                        const currentDateStr = `2025-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                        const dailyData = leaveDataByDate[currentDateStr] || { count: 0, types: new Set() };
+                        
+                        let classes = 'day-cell has-date';
+                        // 여러 출타 종류가 겹칠 경우, 휴가 > 외박 > 외출 순으로 색상 우선순위 적용
+                        if (dailyData.types.has('vacation')) classes += ' vacation';
+                        else if (dailyData.types.has('overnight')) classes += ' overnight';
+                        else if (dailyData.types.has('outing')) classes += ' outing';
+
+                        const percentage = state.totalPersonnel > 0 ? ((dailyData.count / state.totalPersonnel) * 100).toFixed(0) : 0;
+                        
+                        gridHtml += `
+                            <div class="${classes}">
+                                <div class="day-number">${day}</div>
+                                ${dailyData.count > 0 ? `<div class="leave-info">${dailyData.count}명 (${percentage}%)</div>` : ''}
+                            </div>
+                        `;
+                    }
+
+                    gridHtml += '</div>'; // close calendar-grid
+                    calendarDiv.innerHTML = gridHtml;
+                    calendarsContainer.appendChild(calendarDiv);
+                }
+            }
+            
+            function getLeaveDataByDate() {
+                const data = {};
+                state.leaves.forEach(leave => {
+                    let currentDate = new Date(leave.startDate);
+                    const endDate = new Date(leave.endDate);
+
+                    while (currentDate <= endDate) {
+                        const dateStr = currentDate.toISOString().split('T')[0];
+                        if (!data[dateStr]) {
+                            data[dateStr] = { count: 0, types: new Set() };
+                        }
+                        data[dateStr].count++;
+                        data[dateStr].types.add(leave.type);
+                        currentDate.setDate(currentDate.getDate() + 1);
+                    }
+                });
+                return data;
+            }
+
+            // --- 이벤트 핸들러 ---
+            totalPersonnelInput.addEventListener('change', (e) => {
+                const newTotal = parseInt(e.target.value, 10);
+                if (newTotal > 0) {
+                    state.totalPersonnel = newTotal;
+                    saveState();
+                    renderCalendars(); // 출타율이 변경되므로 달력만 다시 렌더링
+                } else {
+                    e.target.value = state.totalPersonnel; // 유효하지 않은 값은 이전 값으로 복원
+                }
+            });
+
+            personnelList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-add')) {
+                    openModal(e.target.dataset.id, e.target.dataset.name);
+                }
+            });
+
+            personnelList.addEventListener('focusout', (e) => {
+                if (e.target.classList.contains('personnel-name')) {
+                    const id = e.target.dataset.id;
+                    const newName = e.target.textContent;
+                    const person = state.personnel.find(p => p.id === id);
+                    if (person && person.name !== newName) {
+                        person.name = newName;
+                        saveState();
+                        renderLeaveHistory(); // 이름이 변경되었을 수 있으므로 내역도 갱신
+                    }
+                }
+            });
+            
+            leaveHistoryList.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-delete')) {
+                    if (confirm('이 출타 내역을 정말 삭제하시겠습니까?')) {
+                        const id = e.target.dataset.id;
+                        state.leaves = state.leaves.filter(l => l.id !== id);
+                        saveState();
+                        render();
+                    }
+                }
+            });
+
+            leaveForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const leave = {
+                    id: `l${Date.now()}`,
+                    personnelId: personnelIdInput.value,
+                    type: leaveTypeSelect.value,
+                    startDate: startDateInput.value,
+                    endDate: endDateInput.value,
+                };
+                state.leaves.push(leave);
+                saveState();
+                render();
+                closeModal();
+            });
+
+            leaveTypeSelect.addEventListener('change', updateEndDateRules);
+            startDateInput.addEventListener('change', updateEndDateRules);
+
+            function updateEndDateRules() {
+                const type = leaveTypeSelect.value;
+                const startDate = new Date(startDateInput.value);
+
+                if (!startDateInput.value) {
+                    endDateInput.value = '';
+                    endDateInput.readOnly = false;
+                    return;
+                }
+
+                endDateInput.readOnly = false;
+                endDateInput.min = startDateInput.value;
+
+                if (type === 'outing') {
+                    endDateInput.value = startDateInput.value;
+                    endDateInput.readOnly = true;
+                } else if (type === 'overnight') {
+                    startDate.setDate(startDate.getDate() + 1);
+                    endDateInput.value = startDate.toISOString().split('T')[0];
+                    endDateInput.readOnly = true;
+                } else if (type === 'vacation') {
+                    const maxEndDate = new Date(startDate);
+                    maxEndDate.setDate(maxEndDate.getDate() + 14); // 최대 15일
+                    endDateInput.max = maxEndDate.toISOString().split('T')[0];
+                     if (!endDateInput.value || new Date(endDateInput.value) < new Date(startDateInput.value) || new Date(endDateInput.value) > new Date(endDateInput.max) ) {
+                        endDateInput.value = startDateInput.value; // 시작일로 초기화
+                    }
+                }
+            }
+
+            cancelButton.addEventListener('click', closeModal);
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            function openModal(personnelId, personnelName) {
+                leaveForm.reset();
+                personnelIdInput.value = personnelId;
+                modalTitle.textContent = `${personnelName} - 출타 정보 입력`;
+                
+                // 날짜 입력 필드의 min/max 설정
+                const today = new Date().toISOString().split('T')[0];
+                startDateInput.min = '2025-07-01';
+                startDateInput.max = '2025-12-31';
+                endDateInput.min = '2025-07-01';
+                endDateInput.max = '2025-12-31';
+                
+                modal.classList.add('visible');
+                updateEndDateRules();
+            }
+
+            function closeModal() {
+                modal.classList.remove('visible');
+            }
+
+            // --- 앱 시작 ---
+            loadState();
+            render();
+        });
+    </script>
+
+</body>
+</html>
